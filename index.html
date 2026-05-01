@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>智慧手杖跌倒監測系統</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -24,8 +25,13 @@
       margin: 0 auto;
     }
 
-    .header {
-      margin-bottom: 24px;
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
     }
 
     .header h1 {
@@ -39,6 +45,32 @@
       font-size: 16px;
     }
 
+    .refresh-btn {
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+    }
+
+    .refresh-btn:hover {
+      opacity: 0.92;
+    }
+
+    .error {
+      background: #fff1f2;
+      color: #be123c;
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: none;
+      border: 1px solid #fecdd3;
+    }
+
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -46,7 +78,8 @@
       margin-bottom: 24px;
     }
 
-    .card {
+    .card,
+    .panel {
       background: rgba(255, 255, 255, 0.96);
       border-radius: 20px;
       padding: 24px;
@@ -81,18 +114,35 @@
       margin-bottom: 24px;
     }
 
-    .panel {
-      background: rgba(255, 255, 255, 0.96);
-      border-radius: 20px;
-      padding: 24px;
-      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-      border: 1px solid rgba(226, 232, 240, 0.8);
+    .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
     }
 
-    .panel h2 {
-      font-size: 20px;
-      margin-bottom: 16px;
-      color: #111827;
+    .switch-btn {
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 50%;
+      background: #eef2ff;
+      color: #2563eb;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    .switch-btn:hover {
+      background: #dbeafe;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #6b7280;
     }
 
     .table-wrap {
@@ -116,8 +166,6 @@
     th {
       background: #f9fafb;
       color: #374151;
-      position: sticky;
-      top: 0;
     }
 
     tbody tr:hover {
@@ -130,13 +178,13 @@
       border-radius: 999px;
       font-size: 12px;
       font-weight: 700;
-      min-width: 72px;
+      min-width: 78px;
       text-align: center;
     }
 
-    .badge-red {
-      background: #fee2e2;
-      color: #b91c1c;
+    .badge-yellow {
+      background: #fef9c3;
+      color: #a16207;
     }
 
     .badge-orange {
@@ -144,58 +192,14 @@
       color: #c2410c;
     }
 
+    .badge-red {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
     .badge-green {
       background: #dcfce7;
       color: #15803d;
-    }
-
-    .footer-note {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #6b7280;
-    }
-
-    .error {
-      background: #fff1f2;
-      color: #be123c;
-      padding: 14px 16px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      display: none;
-      border: 1px solid #fecdd3;
-    }
-
-    .loading {
-      color: #64748b;
-    }
-
-    .muted {
-      color: #6b7280;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .refresh-btn {
-      border: none;
-      background: #2563eb;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
-    }
-
-    .refresh-btn:hover {
-      opacity: 0.92;
     }
 
     .status-dot {
@@ -208,7 +212,19 @@
       vertical-align: middle;
     }
 
+    .status-dot.offline {
+      background: #dc2626;
+    }
+
+    .muted {
+      color: #6b7280;
+    }
+
     @media (max-width: 900px) {
+      body {
+        padding: 16px;
+      }
+
       .grid {
         grid-template-columns: 1fr;
       }
@@ -221,22 +237,20 @@
         font-size: 26px;
       }
 
-      body {
-        padding: 16px;
-      }
-
-      .panel, .card {
+      .card,
+      .panel {
         padding: 18px;
       }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="topbar">
       <div class="header">
         <h1>智慧手杖跌倒監測系統</h1>
-        <p>查看今日跌倒次數、最新事件與最近警報紀錄</p>
+        <p>查看跌倒紀錄、最新事件與 Railway 系統狀態</p>
       </div>
       <button class="refresh-btn" onclick="init()">重新整理</button>
     </div>
@@ -245,33 +259,40 @@
 
     <div class="cards">
       <div class="card">
-        <div class="card-title">今日跌倒次數</div>
+        <div class="card-title">今日事件次數</div>
         <div class="card-value" id="todayCount">--</div>
-        <div class="card-sub">僅統計 ORANGE / RED</div>
+        <div class="card-sub">統計 YELLOW / ORANGE / RED</div>
       </div>
 
       <div class="card">
-        <div class="card-title">最後一次跌倒時間</div>
+        <div class="card-title">最後一次事件時間</div>
         <div class="card-value" id="lastTime" style="font-size: 20px;">--</div>
         <div class="card-sub" id="lastDevice">設備：--</div>
       </div>
 
       <div class="card">
-        <div class="card-title">系統狀態</div>
-        <div class="card-value" id="lastLevel">--</div>
-        <div class="card-sub" id="systemStatus">系統狀態：讀取中</div>
+        <div class="card-title">Railway 系統狀態</div>
+        <div class="card-value" id="systemOnlineText">CHECKING</div>
+        <div class="card-sub" id="systemStatus">
+          <span class="status-dot"></span>系統狀態：檢測中
+        </div>
       </div>
     </div>
 
     <div class="grid">
       <div class="panel">
-        <h2>今日事件統計</h2>
+        <div class="chart-header">
+          <button class="switch-btn" onclick="changeRange(-1)">‹</button>
+          <h2 id="chartTitle">本日事件統計</h2>
+          <button class="switch-btn" onclick="changeRange(1)">›</button>
+        </div>
+
         <canvas id="levelChart" height="140"></canvas>
-        <div class="footer-note">顯示今日 ORANGE / RED 事件分布</div>
+        <div class="footer-note" id="chartNote">顯示本日 YELLOW / ORANGE / RED 事件分布</div>
       </div>
 
       <div class="panel">
-        <h2>最新事件摘要</h2>
+        <h2 style="margin-bottom: 16px;">最新事件摘要</h2>
         <div style="line-height: 2;">
           <p><strong>設備 ID：</strong><span id="summaryDevice">--</span></p>
           <p><strong>時間：</strong><span id="summaryTime">--</span></p>
@@ -284,7 +305,7 @@
     </div>
 
     <div class="panel">
-      <h2>最近警報紀錄</h2>
+      <h2 style="margin-bottom: 16px;">最近事件紀錄</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -299,7 +320,7 @@
           </thead>
           <tbody id="eventsTable">
             <tr>
-              <td colspan="6" class="loading">資料載入中...</td>
+              <td colspan="6" class="muted">資料載入中...</td>
             </tr>
           </tbody>
         </table>
@@ -309,7 +330,28 @@
 
   <script>
     const API_BASE = "https://smart-cane-backend-production-8504.up.railway.app";
+
     let chartInstance = null;
+    let currentRangeIndex = 0;
+    let cachedEvents = [];
+
+    const ranges = [
+      {
+        key: "day",
+        title: "本日事件統計",
+        note: "顯示本日 YELLOW / ORANGE / RED 事件分布"
+      },
+      {
+        key: "week",
+        title: "本週事件統計",
+        note: "顯示本週 YELLOW / ORANGE / RED 事件分布"
+      },
+      {
+        key: "month",
+        title: "本月事件統計",
+        note: "顯示本月 YELLOW / ORANGE / RED 事件分布"
+      }
+    ];
 
     function showError(message) {
       const box = document.getElementById("errorBox");
@@ -323,10 +365,41 @@
       box.textContent = "";
     }
 
+    async function fetchJson(url) {
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        throw new Error(`API 請求失敗：${res.status}`);
+      }
+
+      return await res.json();
+    }
+
+    async function checkSystemStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/`, { method: "GET" });
+
+        if (!res.ok) throw new Error("API offline");
+
+        document.getElementById("systemOnlineText").textContent = "ONLINE";
+        document.getElementById("systemOnlineText").style.color = "#16a34a";
+        document.getElementById("systemStatus").innerHTML =
+          `<span class="status-dot"></span>系統狀態：正常運作`;
+      } catch (err) {
+        document.getElementById("systemOnlineText").textContent = "OFFLINE";
+        document.getElementById("systemOnlineText").style.color = "#dc2626";
+        document.getElementById("systemStatus").innerHTML =
+          `<span class="status-dot offline"></span>系統狀態：無法連線`;
+      }
+    }
+
     function formatTime(isoString) {
       if (!isoString) return "--";
+
       const d = new Date(isoString);
+
       if (isNaN(d.getTime())) return isoString;
+
       return d.toLocaleString("zh-TW", {
         year: "numeric",
         month: "2-digit",
@@ -338,17 +411,121 @@
     }
 
     function levelBadge(level) {
-      if (level === "RED") return `<span class="badge badge-red">RED</span>`;
-      if (level === "ORANGE") return `<span class="badge badge-orange">ORANGE</span>`;
+      if (level === "YELLOW") {
+        return `<span class="badge badge-yellow">YELLOW</span>`;
+      }
+
+      if (level === "ORANGE") {
+        return `<span class="badge badge-orange">ORANGE</span>`;
+      }
+
+      if (level === "RED") {
+        return `<span class="badge badge-red">RED</span>`;
+      }
+
       return `<span class="badge badge-green">${level || "UNKNOWN"}</span>`;
     }
 
-    async function fetchJson(url) {
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error(`API 請求失敗：${res.status} ${res.statusText}`);
+    function filterEventsByRange(events, rangeKey) {
+      const now = new Date();
+
+      return events.filter(event => {
+        const eventDate = new Date(event.created_at);
+        if (isNaN(eventDate.getTime())) return false;
+
+        if (rangeKey === "day") {
+          return eventDate.toDateString() === now.toDateString();
+        }
+
+        if (rangeKey === "week") {
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - now.getDay());
+          startOfWeek.setHours(0, 0, 0, 0);
+
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+          return eventDate >= startOfWeek && eventDate < endOfWeek;
+        }
+
+        if (rangeKey === "month") {
+          return (
+            eventDate.getFullYear() === now.getFullYear() &&
+            eventDate.getMonth() === now.getMonth()
+          );
+        }
+
+        return false;
+      });
+    }
+
+    function renderChart(yellow, orange, red) {
+      const ctx = document.getElementById("levelChart").getContext("2d");
+
+      if (chartInstance) {
+        chartInstance.destroy();
       }
-      return await res.json();
+
+      chartInstance = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["YELLOW", "ORANGE", "RED"],
+          datasets: [{
+            label: "事件數",
+            data: [yellow, orange, red],
+            borderWidth: 1,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadRangeStats() {
+      if (!cachedEvents.length) {
+        cachedEvents = await fetchJson(`${API_BASE}/api/events/recent?limit=100`);
+      }
+
+      const range = ranges[currentRangeIndex];
+      const filtered = filterEventsByRange(cachedEvents, range.key);
+
+      const yellow = filtered.filter(e => e.level === "YELLOW").length;
+      const orange = filtered.filter(e => e.level === "ORANGE").length;
+      const red = filtered.filter(e => e.level === "RED").length;
+
+      document.getElementById("chartTitle").textContent = range.title;
+      document.getElementById("chartNote").textContent = range.note;
+
+      renderChart(yellow, orange, red);
+    }
+
+    function changeRange(direction) {
+      currentRangeIndex += direction;
+
+      if (currentRangeIndex < 0) {
+        currentRangeIndex = ranges.length - 1;
+      }
+
+      if (currentRangeIndex >= ranges.length) {
+        currentRangeIndex = 0;
+      }
+
+      loadRangeStats();
     }
 
     function renderEventsTable(events) {
@@ -382,21 +559,24 @@
 
       if (data.last_event) {
         document.getElementById("lastTime").textContent = formatTime(data.last_event.created_at);
-        document.getElementById("lastDevice").textContent = `設備：${data.last_event.device_id || "--"}`;
-        document.getElementById("lastLevel").textContent = data.last_event.level || "--";
-        document.getElementById("systemStatus").innerHTML = `<span class="status-dot"></span>系統狀態：正常運作`;
+        document.getElementById("lastDevice").textContent =
+          `設備：${data.last_event.device_id || "--"}`;
 
-        document.getElementById("summaryDevice").textContent = data.last_event.device_id || "--";
-        document.getElementById("summaryTime").textContent = formatTime(data.last_event.created_at);
-        document.getElementById("summaryLevel").innerHTML = levelBadge(data.last_event.level);
-        document.getElementById("summaryNote").textContent = data.last_event.note || "無";
-        document.getElementById("summaryBattery").textContent = data.last_event.battery_v ?? "--";
-        document.getElementById("summaryRssi").textContent = data.last_event.rssi ?? "--";
+        document.getElementById("summaryDevice").textContent =
+          data.last_event.device_id || "--";
+        document.getElementById("summaryTime").textContent =
+          formatTime(data.last_event.created_at);
+        document.getElementById("summaryLevel").innerHTML =
+          levelBadge(data.last_event.level);
+        document.getElementById("summaryNote").textContent =
+          data.last_event.note || "無";
+        document.getElementById("summaryBattery").textContent =
+          data.last_event.battery_v ?? "--";
+        document.getElementById("summaryRssi").textContent =
+          data.last_event.rssi ?? "--";
       } else {
         document.getElementById("lastTime").textContent = "--";
         document.getElementById("lastDevice").textContent = "設備：--";
-        document.getElementById("lastLevel").textContent = "--";
-        document.getElementById("systemStatus").textContent = "系統狀態：尚無事件";
 
         document.getElementById("summaryDevice").textContent = "--";
         document.getElementById("summaryTime").textContent = "--";
@@ -409,63 +589,28 @@
       renderEventsTable(data.recent_events || []);
     }
 
-    async function loadTodayStats() {
-      const data = await fetchJson(`${API_BASE}/api/stats/today`);
-      const orange = data.by_level?.ORANGE || 0;
-      const red = data.by_level?.RED || 0;
-
-      const ctx = document.getElementById("levelChart").getContext("2d");
-
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-
-      chartInstance = new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: ["ORANGE", "RED"],
-          datasets: [{
-            label: "今日事件數",
-            data: [orange, red],
-            borderWidth: 1,
-            borderRadius: 8
-          }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                precision: 0
-              }
-            }
-          }
-        }
-      });
-    }
-
     async function loadRecentEvents() {
-      const data = await fetchJson(`${API_BASE}/api/events/recent?limit=20`);
-      renderEventsTable(data || []);
+      const data = await fetchJson(`${API_BASE}/api/events/recent?limit=100`);
+      cachedEvents = data || [];
+      renderEventsTable(cachedEvents.slice(0, 20));
     }
 
     async function init() {
       try {
         hideError();
+        cachedEvents = [];
+
         await Promise.all([
+          checkSystemStatus(),
           loadDashboard(),
-          loadTodayStats(),
           loadRecentEvents()
         ]);
+
+        await loadRangeStats();
       } catch (err) {
         console.error(err);
-        showError("無法載入資料，請確認 Railway 已部署新版 main.py，並且 /api/dashboard、/api/stats/today、/api/events/recent 可正常存取。");
+        showError("無法載入資料，請確認 Railway API 是否正常，以及 /api/dashboard、/api/events/recent 是否可存取。");
+        checkSystemStatus();
       }
     }
 
